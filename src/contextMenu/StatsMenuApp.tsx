@@ -145,7 +145,7 @@ export default function StatsMenuApp({
       {/* HP / Max HP */}
       <div className="col-span-2 grid grid-cols-1 grid-rows-[12px_1fr_12px] justify-items-center gap-y-[1px]">
         <h2 className="col-span-2 flex justify-center self-start text-2xs font-medium tracking-wider text-text-secondary dark:text-text-secondary-dark">
-          HIT POINTS
+          HP
         </h2>
         <BarInput
           parentValue={token.hp}
