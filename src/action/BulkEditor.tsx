@@ -49,8 +49,8 @@ export default function BulkEditor(): JSX.Element {
       appState.mostRecentSelection.includes(token.item.id) ||
       getIncluded(token.item.id, appState.includedItems)) &&
     (playerRole === "GM" || !token.hideStats) &&
-    !(appState.operation === "damage" && token.maxHealth <= 0) &&
-    !(appState.operation === "healing" && token.maxHealth <= 0);
+    !(appState.operation === "damage" && token.maxHp <= 0) &&
+    !(appState.operation === "healing" && token.maxHp <= 0);
   const selectedTokens = tokens.filter(selectionFilter);
 
   function handleDragEnd(event: DragEndEvent) {
