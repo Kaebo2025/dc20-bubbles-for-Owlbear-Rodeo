@@ -79,6 +79,14 @@ export default {
               dark: "hsla(80, 60%, 31%)",
             },
           },
+          yellow: {
+            DEFAULT: "hsl(48, 100%, 50%)",
+            dark: "hsl(48, 100%, 50%)",
+            highlight: {
+              DEFAULT: "hsl(45, 100%, 45%)",
+              dark: "hsl(45, 100%, 40%)",
+            },
+          },
         },
         default: {
           DEFAULT: "#dde1ee",
