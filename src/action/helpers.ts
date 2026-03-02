@@ -1,13 +1,13 @@
 import Token from "@/metadataHelpers/TokenType";
 import OBR, { Math2, Metadata, Vector2 } from "@owlbear-rodeo/sdk";
+import { calculateNewHp, calculateScaledHpDiff } from "./healthCalculations";
 import {
-  calculateNewHealth,
-  calculateScaledHealthDiff,
-} from "./healthCalculations";
-import {
-  HEALTH_METADATA_ID,
+  AD_METADATA_ID,
+  HP_METADATA_ID,
+  MAX_HP_METADATA_ID,
+  PD_METADATA_ID,
   StatMetadataID,
-  TEMP_HEALTH_METADATA_ID,
+  TEMP_HP_METADATA_ID,
 } from "@/metadataHelpers/itemMetadataIds";
 import { getPluginId } from "@/getPluginId";
 import {
@@ -53,7 +53,7 @@ export const getIncluded = (key: string, map: Map<string, boolean>) => {
 };
 
 export async function applyHealthDiffToItems(
-  healthDiff: number,
+  hpDiff: number,
   includedItems: Map<string, boolean>,
   damageScaleSettings: Map<string, number>,
   tokens: Token[],
@@ -67,24 +67,24 @@ export async function applyHealthDiffToItems(
         }
 
         const included = getIncluded(tokens[i].item.id, includedItems);
-        const scaledHealthDiff = calculateScaledHealthDiff(
+        const scaledHpDiff = calculateScaledHpDiff(
           included
             ? getDamageScaleOption(tokens[i].item.id, damageScaleSettings)
             : 0,
-          healthDiff,
+          hpDiff,
         );
 
-        // Set new health and temp health values
-        const [newHealth, newTempHealth] = calculateNewHealth(
-          tokens[i].health.valueOf(),
-          tokens[i].maxHealth.valueOf(),
-          tokens[i].tempHealth.valueOf(),
-          scaledHealthDiff,
+        // Set new HP and temp HP values
+        const [newHp, newTempHp] = calculateNewHp(
+          tokens[i].hp.valueOf(),
+          tokens[i].maxHp.valueOf(),
+          tokens[i].tempHp.valueOf(),
+          scaledHpDiff,
         );
 
         const newMetadata = {
-          [HEALTH_METADATA_ID]: newHealth,
-          [TEMP_HEALTH_METADATA_ID]: newTempHealth,
+          [HP_METADATA_ID]: newHp,
+          [TEMP_HP_METADATA_ID]: newTempHp,
         };
 
         let retrievedMetadata: any;
@@ -94,7 +94,7 @@ export async function applyHealthDiffToItems(
           );
         }
 
-        const combinedMetadata = { ...retrievedMetadata, ...newMetadata }; //overwrite only the modified value
+        const combinedMetadata = { ...retrievedMetadata, ...newMetadata };
 
         items[i].metadata[getPluginId("metadata")] = combinedMetadata;
       }
@@ -118,18 +118,28 @@ export async function overwriteStats(
         const included = getIncluded(tokens[i].item.id, includedItems);
 
         if (included) {
-          let newMetadata = {};
+          let newMetadata: Record<string, number> = {};
+
+          /**
+           * NOTE:
+           * Your current UI/types likely still call this "armorClass".
+           * We treat it as PD until we rename everything in types.tsx.
+           */
           const stats: [string, StatMetadataID][] = [
-            [statOverwrites.hitPoints, "health"],
-            [statOverwrites.maxHitPoints, "max health"],
-            [statOverwrites.tempHitPoints, "temporary health"],
-            [statOverwrites.armorClass, "armor class"],
+            [statOverwrites.hitPoints, HP_METADATA_ID],
+            [statOverwrites.maxHitPoints, MAX_HP_METADATA_ID],
+            [statOverwrites.tempHitPoints, TEMP_HP_METADATA_ID],
+            [statOverwrites.armorClass, PD_METADATA_ID], // "armorClass" UI field -> PD
+            // If your StatOverwriteData already has ad, this will work.
+            // If it doesn't, we'll add it when we update types.tsx.
+            // @ts-expect-error - added during DC20 types update
+            [statOverwrites.ad ?? "", AD_METADATA_ID],
           ];
 
           for (const stat of stats) {
             if (stat[0] !== "") {
               const value = parseFloat(stat[0]);
-              if (Number.isInteger(value)) {
+              if (Number.isFinite(value) && Number.isInteger(value)) {
                 newMetadata = { ...newMetadata, [stat[1]]: value };
               }
             }
@@ -142,7 +152,7 @@ export async function overwriteStats(
             );
           }
 
-          const combinedMetadata = { ...retrievedMetadata, ...newMetadata }; //overwrite only the modified value
+          const combinedMetadata = { ...retrievedMetadata, ...newMetadata };
 
           items[i].metadata[getPluginId("metadata")] = combinedMetadata;
         }
@@ -161,7 +171,6 @@ export function writeTokenSortingToItems(tokens: Token[]) {
         }
 
         let newMetadata = {
-          // group: tokens[i].group,
           index: tokens[i].index,
         };
 
@@ -172,7 +181,7 @@ export function writeTokenSortingToItems(tokens: Token[]) {
           );
         }
 
-        const combinedMetadata = { ...retrievedMetadata, ...newMetadata }; //overwrite only the modified value
+        const combinedMetadata = { ...retrievedMetadata, ...newMetadata };
 
         items[i].metadata[getPluginId("metadata")] = combinedMetadata;
       }
@@ -206,7 +215,9 @@ function isDiceRollArray(rolls: unknown): rolls is StampedDiceRoll[] {
     if (typeof roll?.playerName !== "string") return false;
     if (typeof roll?.visibility !== "string") return false;
     if (roll.visibility === "PRIVATE") {
-      if (typeof roll?.userId !== "string") return false;
+      // Some code uses userId vs playerId; accept either if present
+      if (typeof (roll as any)?.userId !== "string" && typeof (roll as any)?.playerId !== "string")
+        return false;
     }
   }
   return true;
@@ -304,6 +315,7 @@ export function reducer(
         },
       };
     case "set-armor-class-overwrite":
+      // NOTE: treat as PD until types/UI are fully renamed
       return {
         ...state,
         statOverwrites: {
@@ -336,7 +348,8 @@ export const unsetStatOverwrites = () => {
     hitPoints: "",
     maxHitPoints: "",
     tempHitPoints: "",
-    armorClass: "",
+    armorClass: "", // treated as PD for now
+    // ad: "", // will be added when we update types.tsx + UI
   };
 };
 
@@ -348,22 +361,17 @@ export async function handleTokenClicked(itemId: string, replace: boolean) {
 }
 
 async function deselectText() {
-  // Deselect the list item text
   window.getSelection()?.removeAllRanges();
 }
 
 export async function focusItem(itemId: string) {
-  // User may have selected text by double clicking on the initiative item
   deselectText();
 
   await OBR.player.select([itemId]);
-  // Focus on this item
 
-  // Convert the center of the selected item to screen-space
   const bounds = await OBR.scene.items.getItemBounds([itemId]);
   const boundsAbsoluteCenter = await OBR.viewport.transformPoint(bounds.center);
 
-  // Get the center of the viewport in screen-space
   const viewportWidth = await OBR.viewport.getWidth();
   const viewportHeight = await OBR.viewport.getHeight();
   const viewportCenter: Vector2 = {
@@ -371,14 +379,11 @@ export async function focusItem(itemId: string) {
     y: viewportHeight / 2,
   };
 
-  // Offset the item center by the viewport center
   const absoluteCenter = Math2.subtract(boundsAbsoluteCenter, viewportCenter);
 
-  // Convert the center to world-space
   const relativeCenter =
     await OBR.viewport.inverseTransformPoint(absoluteCenter);
 
-  // Invert and scale the world-space position to match a viewport position offset
   const viewportScale = await OBR.viewport.getScale();
   const viewportPosition = Math2.multiply(relativeCenter, -viewportScale);
 
@@ -387,6 +392,5 @@ export async function focusItem(itemId: string) {
     position: viewportPosition,
   });
 
-  // Select this item
   OBR.player.select([itemId]);
 }
