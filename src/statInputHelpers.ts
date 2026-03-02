@@ -1,28 +1,18 @@
 import OBR from "@owlbear-rodeo/sdk";
 import { getPluginId } from "./getPluginId";
 import {
-  ARMOR_CLASS_METADATA_ID,
-  HEALTH_METADATA_ID,
+  AD_METADATA_ID,
+  HP_METADATA_ID,
   HIDE_METADATA_ID,
-  MAX_HEALTH_METADATA_ID,
+  MAX_HP_METADATA_ID,
+  PD_METADATA_ID,
   StatMetadataID,
-  TEMP_HEALTH_METADATA_ID,
+  TEMP_HP_METADATA_ID,
 } from "./metadataHelpers/itemMetadataIds";
 
-export type InputName =
-  | "health"
-  | "maxHealth"
-  | "tempHealth"
-  | "armorClass"
-  | "hideStats";
+export type InputName = "hp" | "maxHp" | "tempHp" | "pd" | "ad" | "hideStats";
 
-const inputNames: InputName[] = [
-  "health",
-  "maxHealth",
-  "tempHealth",
-  "armorClass",
-  "hideStats",
-];
+const inputNames: InputName[] = ["hp", "maxHp", "tempHp", "pd", "ad", "hideStats"];
 
 export function isInputName(id: string): id is InputName {
   return inputNames.includes(id as InputName);
@@ -57,6 +47,10 @@ export function getNewStatValue(
   inputContent: string,
   previousValue: number,
 ): number {
+  // hideStats is a boolean toggle; it shouldn't ever come through here,
+  // but if it does, keep it safe.
+  if (name === "hideStats") return previousValue;
+
   return restrictValueRange(
     convertInputNameToMetadataId(name),
     inlineMath(inputContent, previousValue),
@@ -76,22 +70,19 @@ function inlineMath(inputContent: string, previousValue: number): number {
 
 function restrictValueRange(id: StatMetadataID, value: number): number {
   switch (id) {
-    case HEALTH_METADATA_ID:
-    case MAX_HEALTH_METADATA_ID:
-      if (value > 9999) {
-        value = 9999;
-      } else if (value < -999) {
-        value = -999;
-      }
+    case HP_METADATA_ID:
+    case MAX_HP_METADATA_ID:
+      if (value > 9999) value = 9999;
+      else if (value < -999) value = -999;
       break;
-    case TEMP_HEALTH_METADATA_ID:
-    case ARMOR_CLASS_METADATA_ID:
-      if (value > 999) {
-        value = 999;
-      } else if (value < -999) {
-        value = -999;
-      }
+
+    case TEMP_HP_METADATA_ID:
+    case PD_METADATA_ID:
+    case AD_METADATA_ID:
+      if (value > 999) value = 999;
+      else if (value < -999) value = -999;
       break;
+
     default:
       break;
   }
@@ -100,14 +91,16 @@ function restrictValueRange(id: StatMetadataID, value: number): number {
 
 function convertInputNameToMetadataId(id: InputName): StatMetadataID {
   switch (id) {
-    case "health":
-      return HEALTH_METADATA_ID;
-    case "maxHealth":
-      return MAX_HEALTH_METADATA_ID;
-    case "tempHealth":
-      return TEMP_HEALTH_METADATA_ID;
-    case "armorClass":
-      return ARMOR_CLASS_METADATA_ID;
+    case "hp":
+      return HP_METADATA_ID;
+    case "maxHp":
+      return MAX_HP_METADATA_ID;
+    case "tempHp":
+      return TEMP_HP_METADATA_ID;
+    case "pd":
+      return PD_METADATA_ID;
+    case "ad":
+      return AD_METADATA_ID;
     case "hideStats":
       return HIDE_METADATA_ID;
   }
