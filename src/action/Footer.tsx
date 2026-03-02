@@ -6,7 +6,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { calculateScaledHealthDiff } from "./healthCalculations";
+import { calculateScaledHpDiff } from "./healthCalculations";
 import { useEffect, useState } from "react";
 import DiceSVG from "./DiceSVG";
 import StatStyledInput from "./StatStyledInput";
@@ -236,9 +236,9 @@ export default function Footer({
   return (
     <div className="space-y-2 p-2 px-4">
       {appState.operation === "overwrite" && (
-        <div className="grid grid-cols-2 items-center justify-items-stretch gap-2 border-mirage-300 dark:border-mirage-800 sm:grid-cols-4">
+        <div className="grid grid-cols-2 items-center justify-items-stretch gap-2 border-mirage-300 dark:border-mirage-800 sm:grid-cols-5">
           <StatStyledInput
-            name="health"
+            name="hp"
             inputProps={{
               value: appState.statOverwrites.hitPoints,
               onChange: (e) =>
@@ -252,11 +252,11 @@ export default function Footer({
                   hitPointsOverwrite: toValidIntString(e.target.value),
                 }),
               className: "min-w-[90px] w-full h-[36px]",
-              placeholder: "Unchanged",
+              placeholder: "HP",
             }}
           />
           <StatStyledInput
-            name="maxHealth"
+            name="maxHp"
             inputProps={{
               value: appState.statOverwrites.maxHitPoints,
               onChange: (e) =>
@@ -270,11 +270,11 @@ export default function Footer({
                   maxHitPointsOverwrite: toValidIntString(e.target.value),
                 }),
               className: "min-w-[90px] w-full h-[36px]",
-              placeholder: "Unchanged",
+              placeholder: "Max HP",
             }}
           />
           <StatStyledInput
-            name="tempHealth"
+            name="tempHp"
             inputProps={{
               value: appState.statOverwrites.tempHitPoints,
               onChange: (e) =>
@@ -288,11 +288,12 @@ export default function Footer({
                   tempHitPointsOverwrite: toValidIntString(e.target.value),
                 }),
               className: "min-w-[90px] w-full h-[36px]",
-              placeholder: "Unchanged",
+              placeholder: "Temp HP",
             }}
           />
+          {/* PD (stored in legacy armorClass field) */}
           <StatStyledInput
-            name="armorClass"
+            name="pd"
             inputProps={{
               value: appState.statOverwrites.armorClass,
               onChange: (e) =>
@@ -306,7 +307,26 @@ export default function Footer({
                   armorClassOverwrite: toValidIntString(e.target.value),
                 }),
               className: "min-w-[90px] w-full h-[36px]",
-              placeholder: "Unchanged",
+              placeholder: "PD",
+            }}
+          />
+          {/* AD */}
+          <StatStyledInput
+            name="ad"
+            inputProps={{
+              value: appState.statOverwrites.ad,
+              onChange: (e) =>
+                dispatch({
+                  type: "set-ad-overwrite",
+                  adOverwrite: e.target.value,
+                }),
+              onBlur: (e) =>
+                dispatch({
+                  type: "set-ad-overwrite",
+                  adOverwrite: toValidIntString(e.target.value),
+                }),
+              className: "min-w-[90px] w-full h-[36px]",
+              placeholder: "AD",
             }}
           />
         </div>
@@ -327,9 +347,7 @@ export default function Footer({
                 <h4 className="font-medium">Scene Roll Log</h4>
                 <Separator />
                 {appState.rolls.length > 0 ? (
-                  <div className="flex flex-col justify-start gap-2">
-                    {rolls}
-                  </div>
+                  <div className="flex flex-col justify-start gap-2">{rolls}</div>
                 ) : (
                   <p className="text-muted-foreground text-sm">
                     Your last 20 dice rolls, made in this scene, will be
@@ -349,9 +367,7 @@ export default function Footer({
             )}
             {!appState.animateRoll && (
               <div>
-                {appState.value
-                  ? calculateScaledHealthDiff(3, appState.value)
-                  : ""}
+                {appState.value ? calculateScaledHpDiff(3, appState.value) : ""}
               </div>
             )}
           </div>
