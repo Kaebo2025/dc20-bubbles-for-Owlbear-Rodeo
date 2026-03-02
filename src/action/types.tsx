@@ -23,7 +23,12 @@ export type StatOverwriteData = {
   hitPoints: string;
   maxHitPoints: string;
   tempHitPoints: string;
+  /**
+   * Legacy field name used throughout the UI.
+   * We treat this as PD in DC20 until the UI is fully renamed.
+   */
   armorClass: string;
+  ad: string;
 };
 
 export type BulkEditorState = {
@@ -92,6 +97,10 @@ export type Action =
   | {
       type: "set-armor-class-overwrite";
       armorClassOverwrite: string;
+    }
+  | {
+      type: "set-ad-overwrite";
+      adOverwrite: string;
     }
   | {
       type: "set-damage-scale-options";
