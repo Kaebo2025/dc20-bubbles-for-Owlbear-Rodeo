@@ -139,25 +139,24 @@ export default function StatsMenuApp({
   const StatsMenu: JSX.Element = (
     <div
       className={
-        "grid grid-cols-4 rounded-lg bg-mirage-950/[0.07] fill-text-secondary p-1 py-1 dark:bg-mirage-50/[0.07] dark:fill-text-secondary-dark"
+        "grid grid-cols-5 rounded-lg bg-mirage-950/[0.07] fill-text-secondary p-1 py-1 dark:bg-mirage-50/[0.07] dark:fill-text-secondary-dark"
       }
     >
+      {/* HP / Max HP */}
       <div className="col-span-2 grid grid-cols-1 grid-rows-[12px_1fr_12px] justify-items-center gap-y-[1px]">
         <h2 className="col-span-2 flex justify-center self-start text-2xs font-medium tracking-wider text-text-secondary dark:text-text-secondary-dark">
           HIT POINTS
         </h2>
         <BarInput
-          parentValue={token.health}
-          parentMax={token.maxHealth}
+          parentValue={token.hp}
+          parentMax={token.maxHp}
           color={"RED"}
-          valueUpdateHandler={async (target) =>
-            handleStatUpdate(target, token.health)
-          }
+          valueUpdateHandler={async (target) => handleStatUpdate(target, token.hp)}
           maxUpdateHandler={async (target) =>
-            handleStatUpdate(target, token.maxHealth)
+            handleStatUpdate(target, token.maxHp)
           }
-          valueName="health"
-          maxName="maxHealth"
+          valueName="hp"
+          maxName="maxHp"
           animateOnlyWhenRootActive={true}
         ></BarInput>
         <h2 className="col-span-2 flex justify-center self-start text-2xs font-medium tracking-wider text-text-secondary dark:text-text-secondary-dark">
@@ -165,36 +164,50 @@ export default function StatsMenuApp({
         </h2>
       </div>
 
+      {/* Temp HP */}
       <div className="col-start-3 row-start-1 flex items-center justify-center">
         <div className="size-0">
-          <TextRing
-            topText={"TEMPORARY"}
-            bottomText={"HIT POINTS"}
-            letterSpacing={0.8}
-          />
+          <TextRing topText={"TEMP"} bottomText={"HP"} letterSpacing={1.2} />
         </div>
       </div>
       <div className="col-start-3 row-start-1 flex size-full items-center justify-center">
         <BubbleInput
-          parentValue={token.tempHealth}
-          color="GREEN"
-          updateHandler={(target) => handleStatUpdate(target, token.tempHealth)}
-          name="tempHealth"
+          parentValue={token.tempHp}
+          color="YELLOW"
+          updateHandler={(target) => handleStatUpdate(target, token.tempHp)}
+          name="tempHp"
           animateOnlyWhenRootActive={true}
         />
       </div>
 
+      {/* PD */}
       <div className="col-start-4 row-start-1 flex items-center justify-center">
         <div className="size-0">
-          <TextRing topText={"ARMOR"} bottomText={"CLASS"} letterSpacing={1} />
+          <TextRing topText={"P"} bottomText={"D"} letterSpacing={2} />
         </div>
       </div>
       <div className="col-start-4 row-start-1 flex size-full items-center justify-center">
         <BubbleInput
-          parentValue={token.armorClass}
+          parentValue={token.pd}
           color="BLUE"
-          updateHandler={(target) => handleStatUpdate(target, token.armorClass)}
-          name={"armorClass"}
+          updateHandler={(target) => handleStatUpdate(target, token.pd)}
+          name="pd"
+          animateOnlyWhenRootActive={true}
+        />
+      </div>
+
+      {/* AD */}
+      <div className="col-start-5 row-start-1 flex items-center justify-center">
+        <div className="size-0">
+          <TextRing topText={"A"} bottomText={"D"} letterSpacing={2} />
+        </div>
+      </div>
+      <div className="col-start-5 row-start-1 flex size-full items-center justify-center">
+        <BubbleInput
+          parentValue={token.ad}
+          color="GREEN"
+          updateHandler={(target) => handleStatUpdate(target, token.ad)}
+          name="ad"
           animateOnlyWhenRootActive={true}
         />
       </div>
