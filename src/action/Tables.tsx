@@ -11,10 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ArrowLeftIcon, ArrowRightIcon } from "@radix-ui/react-icons";
-import {
-  calculateNewHealth,
-  calculateScaledHealthDiff,
-} from "./healthCalculations";
+import { calculateNewHp, calculateScaledHpDiff } from "./healthCalculations";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   DEFAULT_DAMAGE_SCALE,
@@ -112,38 +109,33 @@ export function SceneTokensTable({
                 <TableHead>Access</TableHead>
               )}
               {appState.operation !== "damage" && (
-                <TableHead title="Hit Points / Maximum Hit Points, Temporary Hit Points">
-                  Stats
-                </TableHead>
+                <TableHead title="HP / Max HP, Temp HP, PD, AD">Stats</TableHead>
               )}
               {appState.operation === "damage" && (
                 <>
                   <TableHead>Multiplier</TableHead>
                   <TableHead>Damage</TableHead>
-                  <TableHead>New Hit Points</TableHead>
+                  <TableHead>New HP</TableHead>
                 </>
               )}
             </TableRow>
           </TableHeader>
           <TableBody>
             {tokens.map((token) => {
-              const included = getIncluded(
-                token.item.id,
-                appState.includedItems,
-              );
+              const included = getIncluded(token.item.id, appState.includedItems);
 
               const option = getDamageScaleOption(
                 token.item.id,
                 appState.damageScaleOptions,
               );
-              const scaledDamage = calculateScaledHealthDiff(
+              const scaledDamage = calculateScaledHpDiff(
                 included ? option : 0,
                 appState.value ? appState.value : 0,
               );
-              const [newHealth, newTempHealth] = calculateNewHealth(
-                token.health,
-                token.maxHealth,
-                token.tempHealth,
+              const [newHp, newTempHp] = calculateNewHp(
+                token.hp,
+                token.maxHp,
+                token.tempHp,
                 -1 * scaledDamage,
               );
 
@@ -194,11 +186,7 @@ export function SceneTokensTable({
               };
 
               return (
-                <SortableTableRow
-                  key={token.item.id}
-                  id={token.item.id}
-                  onKeyDown={handleKeyDown}
-                >
+                <SortableTableRow key={token.item.id} id={token.item.id} onKeyDown={handleKeyDown}>
                   {appState.operation !== "none" && (
                     <CheckboxTableCell
                       included={included}
@@ -223,54 +211,67 @@ export function SceneTokensTable({
                   )}
                   {appState.operation !== "damage" && (
                     <TableCell>
-                      <div className="grid min-w-[140px] grid-cols-2 justify-items-stretch gap-2 sm:min-w-[250px] sm:grid-cols-4">
+                      {/* 5 stats: HP/MaxHP + TempHP + PD + AD */}
+                      <div className="grid min-w-[140px] grid-cols-2 justify-items-stretch gap-2 sm:min-w-[320px] sm:grid-cols-5">
                         <div className="col-span-2 flex items-center justify-between gap-1">
                           <StatInput
-                            parentValue={token.health}
-                            name={"health"}
+                            parentValue={token.hp}
+                            name="hp"
                             updateHandler={(target) =>
                               handleStatUpdate(
                                 token.item.id,
                                 target,
-                                token.health,
+                                token.hp,
                                 setTokens,
                               )
                             }
                           />
                           <div>{"/"}</div>
                           <StatInput
-                            parentValue={token.maxHealth}
-                            name={"maxHealth"}
+                            parentValue={token.maxHp}
+                            name="maxHp"
                             updateHandler={(target) =>
                               handleStatUpdate(
                                 token.item.id,
                                 target,
-                                token.maxHealth,
+                                token.maxHp,
                                 setTokens,
                               )
                             }
                           />
                         </div>
                         <StatInput
-                          parentValue={token.tempHealth}
-                          name={"tempHealth"}
+                          parentValue={token.tempHp}
+                          name="tempHp"
                           updateHandler={(target) =>
                             handleStatUpdate(
                               token.item.id,
                               target,
-                              token.tempHealth,
+                              token.tempHp,
                               setTokens,
                             )
                           }
                         />
                         <StatInput
-                          parentValue={token.armorClass}
-                          name={"armorClass"}
+                          parentValue={token.pd}
+                          name="pd"
                           updateHandler={(target) =>
                             handleStatUpdate(
                               token.item.id,
                               target,
-                              token.armorClass,
+                              token.pd,
+                              setTokens,
+                            )
+                          }
+                        />
+                        <StatInput
+                          parentValue={token.ad}
+                          name="ad"
+                          updateHandler={(target) =>
+                            handleStatUpdate(
+                              token.item.id,
+                              target,
+                              token.ad,
                               setTokens,
                             )
                           }
@@ -331,8 +332,7 @@ export function SceneTokensTable({
                           "text-mirage-500 dark:text-mirage-400": !included,
                         })}
                       >
-                        {newHealth.toString() +
-                          (newTempHealth > 0 ? ` (${newTempHealth})` : "")}
+                        {newHp.toString() + (newTempHp > 0 ? ` (${newTempHp})` : "")}
                       </TableCell>
                     </>
                   )}
@@ -396,10 +396,7 @@ function TokenTableCell({
   playerSelection: string[];
 }): JSX.Element {
   const image = (
-    <img
-      className="min-h-8 min-w-8"
-      src={(token.item as Image).image.url}
-    ></img>
+    <img className="min-h-8 min-w-8" src={(token.item as Image).image.url}></img>
   );
   return (
     <TableCell>
@@ -409,9 +406,7 @@ function TokenTableCell({
             <button
               className={cn(
                 "size-12 font-medium outline-none sm:size-8",
-                {
-                  "opacity-60": faded,
-                },
+                { "opacity-60": faded },
                 {
                   "outline-image dark:outline-image": playerSelection.includes(
                     token.item.id,
@@ -446,7 +441,6 @@ async function handleHiddenUpdate(
 
   setTokens((prevTokens) => {
     for (let i = 0; i < prevTokens.length; i++) {
-      // console.log(prevTokens[i]);
       if (prevTokens[i].item.id === itemId)
         prevTokens[i] = { ...prevTokens[i], [name]: value } as Token;
     }
@@ -468,7 +462,6 @@ function handleStatUpdate(
 
   setTokens((prevTokens) => {
     for (let i = 0; i < prevTokens.length; i++) {
-      // console.log(prevTokens[i]);
       if (prevTokens[i].item.id === itemId)
         prevTokens[i] = { ...prevTokens[i], [name]: value } as Token;
     }
@@ -489,7 +482,6 @@ function StatInput({
   const [value, setValue] = useState<string>(parentValue.toString());
   let ignoreBlur = false;
 
-  // Update value when the tracker value changes in parent
   const [valueInputUpdateFlag, setValueInputUpdateFlag] = useState(false);
   if (valueInputUpdateFlag) {
     setValue(parentValue.toString());
@@ -497,7 +489,6 @@ function StatInput({
   }
   useEffect(() => setValueInputUpdateFlag(true), [parentValue]);
 
-  // Update tracker in parent element
   const runUpdateHandler = (
     e:
       | React.FocusEvent<HTMLInputElement, Element>
@@ -507,7 +498,6 @@ function StatInput({
     setValueInputUpdateFlag(true);
   };
 
-  // Select text on focus
   const selectText = (event: React.FocusEvent<HTMLInputElement, Element>) => {
     event.target.select();
   };
