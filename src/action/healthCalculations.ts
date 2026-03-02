@@ -1,102 +1,95 @@
-export function calculateNewHealth(
-  health: number,
-  maxHealth: number,
-  tempHealth: number,
-  healthDiff: number,
+export function calculateNewHp(
+  hp: number,
+  maxHp: number,
+  tempHp: number,
+  hpDiff: number,
 ) {
-  let newHealth: number;
-  let newTempHealth: number;
+  let newHp: number;
+  let newTempHp: number;
 
-  // If health was less than 0 use 0 instead as per 5e rules,
-  // displaying negative HP is useful or overflow but not for AOE effects
-  if (health < 0) {
-    health = 0;
+  // If HP was less than 0 use 0 instead,
+  // displaying negative HP is useful for overflow but not for AOE effects
+  if (hp < 0) {
+    hp = 0;
   }
 
-  // If temp health was less than 0 use 0 instead as per 5e rules,
-  // displaying negative HP is useful or overflow but not for AOE effects
-  if (tempHealth < 0) {
-    tempHealth = 0;
+  // If temp HP was less than 0 use 0 instead,
+  // displaying negative HP is useful for overflow but not for AOE effects
+  if (tempHp < 0) {
+    tempHp = 0;
   }
 
-  if (healthDiff > 0) {
+  if (hpDiff > 0) {
     // Healing
+    const healing = hpDiff;
 
-    let healing = healthDiff;
+    newHp = hp + healing;
+    newTempHp = tempHp;
 
-    newHealth = health + healing;
-    newTempHealth = tempHealth;
-
-    if (newHealth > maxHealth) {
-      newHealth = maxHealth;
+    if (newHp > maxHp) {
+      newHp = maxHp;
     }
   } else {
     // Damage
+    const damage = Math.abs(hpDiff);
 
-    let damage = Math.abs(healthDiff);
-
-    if (tempHealth <= 0) {
-      // Doesn't have temp health
-
-      newHealth = health - damage;
-      newTempHealth = tempHealth;
+    if (tempHp <= 0) {
+      // Doesn't have temp HP
+      newHp = hp - damage;
+      newTempHp = tempHp;
     } else {
-      // Has temp health
-
-      if (tempHealth > damage) {
-        // Damage only changes temp health
-        newHealth = health;
-        newTempHealth = tempHealth - damage;
+      // Has temp HP
+      if (tempHp > damage) {
+        // Damage only changes temp HP
+        newHp = hp;
+        newTempHp = tempHp - damage;
       } else {
-        //damage overflows into regular health
-        newHealth = health + tempHealth - damage;
-        newTempHealth = 0;
+        // Damage overflows into regular HP
+        newHp = hp + tempHp - damage;
+        newTempHp = 0;
       }
     }
   }
 
-  // Restrict health to values within [-999, 9999]
-  if (newHealth > 9999) {
-    newHealth = 9999;
-  } else if (newHealth < -999) {
-    newHealth = -999;
+  // Restrict HP to values within [-999, 9999]
+  if (newHp > 9999) {
+    newHp = 9999;
+  } else if (newHp < -999) {
+    newHp = -999;
   }
 
-  // Restrict temp health to values within [-999, 999]
-  if (newTempHealth > 999) {
-    newTempHealth = 999;
-  } else if (newTempHealth < -999) {
-    newTempHealth = -999;
+  // Restrict temp HP to values within [-999, 999]
+  if (newTempHp > 999) {
+    newTempHp = 999;
+  } else if (newTempHp < -999) {
+    newTempHp = -999;
   }
 
-  return [newHealth, newTempHealth];
+  return [newHp, newTempHp];
 }
 
-export function scaleHealthDiff(
+export function scaleHpDiff(
   damageScaleOptions: Map<string, number>,
-  healthDiff: number,
+  hpDiff: number,
   key: string,
 ) {
   const damageScaleOption = damageScaleOptions.get(key);
   if (!damageScaleOption) throw "Error: Invalid radio button value.";
-  return calculateScaledHealthDiff(damageScaleOption, healthDiff);
+  return calculateScaledHpDiff(damageScaleOption, hpDiff);
 }
 
-export function calculateScaledHealthDiff(
-  damageScaleOption: number,
-  healthDiff: number,
-) {
+export function calculateScaledHpDiff(damageScaleOption: number, hpDiff: number) {
   switch (damageScaleOption) {
     case 0:
       return 0;
     case 1:
-      return Math.trunc(Math.trunc(healthDiff * 0.5) * 0.5);
+      return Math.trunc(Math.trunc(hpDiff * 0.5) * 0.5);
     case 2:
-      return Math.trunc(healthDiff * 0.5);
+      return Math.trunc(hpDiff * 0.5);
     case 3:
-      return Math.trunc(healthDiff);
+      return Math.trunc(hpDiff);
     case 4:
-      return Math.trunc(healthDiff) * 2;
+      return Math.trunc(hpDiff) * 2;
     default:
   }
   throw "Error: Invalid radio button value.";
