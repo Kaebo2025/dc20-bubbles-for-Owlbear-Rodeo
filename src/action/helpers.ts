@@ -122,18 +122,14 @@ export async function overwriteStats(
 
           /**
            * NOTE:
-           * Your current UI/types likely still call this "armorClass".
-           * We treat it as PD until we rename everything in types.tsx.
+           * The UI/types still call PD "armorClass". We treat it as PD in DC20.
            */
           const stats: [string, StatMetadataID][] = [
             [statOverwrites.hitPoints, HP_METADATA_ID],
             [statOverwrites.maxHitPoints, MAX_HP_METADATA_ID],
             [statOverwrites.tempHitPoints, TEMP_HP_METADATA_ID],
-            [statOverwrites.armorClass, PD_METADATA_ID], // "armorClass" UI field -> PD
-            // If your StatOverwriteData already has ad, this will work.
-            // If it doesn't, we'll add it when we update types.tsx.
-            // @ts-expect-error - added during DC20 types update
-            [statOverwrites.ad ?? "", AD_METADATA_ID],
+            [statOverwrites.armorClass, PD_METADATA_ID], // armorClass UI field -> PD
+            [statOverwrites.ad, AD_METADATA_ID],
           ];
 
           for (const stat of stats) {
@@ -215,8 +211,10 @@ function isDiceRollArray(rolls: unknown): rolls is StampedDiceRoll[] {
     if (typeof roll?.playerName !== "string") return false;
     if (typeof roll?.visibility !== "string") return false;
     if (roll.visibility === "PRIVATE") {
-      // Some code uses userId vs playerId; accept either if present
-      if (typeof (roll as any)?.userId !== "string" && typeof (roll as any)?.playerId !== "string")
+      if (
+        typeof (roll as any)?.userId !== "string" &&
+        typeof (roll as any)?.playerId !== "string"
+      )
         return false;
     }
   }
@@ -315,12 +313,20 @@ export function reducer(
         },
       };
     case "set-armor-class-overwrite":
-      // NOTE: treat as PD until types/UI are fully renamed
+      // NOTE: treat as PD until UI is fully renamed
       return {
         ...state,
         statOverwrites: {
           ...state.statOverwrites,
           armorClass: action.armorClassOverwrite,
+        },
+      };
+    case "set-ad-overwrite":
+      return {
+        ...state,
+        statOverwrites: {
+          ...state.statOverwrites,
+          ad: action.adOverwrite,
         },
       };
     case "set-damage-scale-options":
@@ -349,7 +355,7 @@ export const unsetStatOverwrites = () => {
     maxHitPoints: "",
     tempHitPoints: "",
     armorClass: "", // treated as PD for now
-    // ad: "", // will be added when we update types.tsx + UI
+    ad: "",
   };
 };
 
