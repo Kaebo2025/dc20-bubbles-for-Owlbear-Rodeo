@@ -183,7 +183,7 @@ export default function StatsMenuApp({
       {/* PD */}
       <div className="col-start-4 row-start-1 flex items-center justify-center">
         <div className="size-0">
-          <TextRing topText={"P"} bottomText={"D"} letterSpacing={2} />
+          <TextRing topText={"PD"} bottomText={"Defense"} letterSpacing={2} />
         </div>
       </div>
       <div className="col-start-4 row-start-1 flex size-full items-center justify-center">
@@ -199,7 +199,7 @@ export default function StatsMenuApp({
       {/* AD */}
       <div className="col-start-5 row-start-1 flex items-center justify-center">
         <div className="size-0">
-          <TextRing topText={"A"} bottomText={"D"} letterSpacing={2} />
+          <TextRing topText={"AD"} bottomText={"Defense"} letterSpacing={2} />
         </div>
       </div>
       <div className="col-start-5 row-start-1 flex size-full items-center justify-center">
