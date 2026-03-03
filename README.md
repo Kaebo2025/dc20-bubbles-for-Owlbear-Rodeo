@@ -1,114 +1,146 @@
-# **Stat Bubbles for D&D** Owlbear Rodeo Extension
+# **Stat Bubbles for DC20** — Owlbear Rodeo Extension
 
-Track hit points and armor class using this [Owlbear Rodeo](https://www.owlbear.rodeo/) extension.
+Track DC20 token stats using this [Owlbear Rodeo](https://www.owlbear.rodeo/) extension.
 
-![Stat Bubbles GitHub Image](https://github.com/SeamusFinlayson/Bubbles-for-Owlbear-Rodeo/assets/77430559/6e2bcd42-d59e-4482-8fc9-c514bfd3a1c5)
+> **Stats supported:** HP, Max HP, Temp HP, PD, AD
+
+![Stat Bubbles GitHub Image](<ADD_YOUR_IMAGE_LINK_HERE>)
 
 ## Installing
 
-Visit the [Owlbear Rodeo store](https://extensions.owlbear.rodeo/bubble-tracker) to install the extension.
+**Option A (recommended):** Install from a manifest URL (self-hosted).
+
+1. Deploy/host this extension (Render, Vercel, etc.)
+2. Copy your hosted `manifest.json` URL
+3. In Owlbear Rodeo: **Extensions → Add Extension → Paste manifest URL**
+
+Manifest URL example:
+`https://YOUR-DEPLOYMENT-HOST/manifest.json`
+
+**Option B:** If you publish to the Owlbear Rodeo store, add the store link here.
+`<ADD_STORE_LINK_HERE>`
 
 ## How it works
 
 This extension provides a simple way to track:
 
-- Current Hit Points
-- Hit Point Maximum
-- Temporary Hit Points
-- and Armor Class
+- **HP** (Current Hit Points)
+- **Max HP**
+- **Temp HP**
+- **PD**
+- **AD**
 
 Stat Bubbles also features:
 
-- A per token setting to hide stats from players
+- A per-token setting to hide stats from players
 - Name tags that will never overlap with health bars
-- A tools for applying area of effect (AEO) spells
+- Tools for applying area-of-effect (AOE) damage/healing via the Action menu
 - Settings to configure health bar positions
-- An option to show the players segmented enemy health bars
+- An option to show segmented enemy health bars (GM setting)
 
 ### The Basics
 
 **Right click** on a token to access the **context menu** and edit its stats.
 
-<img name="Player Context Menu" src="https://github.com/user-attachments/assets/476d0377-19ff-4f3c-a50f-df62c38adaa7" width=300>
+<img name="Player Context Menu" src="<ADD_YOUR_IMAGE_LINK_HERE>" width="300" />
 
-**This extension does math for you!** The inline math feature makes repetitive calculations effortless. To add 6 to your HP type +6 and press Enter. To subtract 6 from your HP type -6 and press Enter. This works for every stat.
+**This extension does math for you!**  
+Inline math makes repetitive calculations effortless.
 
-<img name="Inline Math Demo" src="https://github.com/user-attachments/assets/440423a0-3ee7-4f2e-9a36-c65da92b354e" width=600>
+- To add 6: type `+6` and press Enter  
+- To subtract 6: type `-6` and press Enter  
 
-In a hurry? press **Tab** to cycle through the bubbles.
+This works for every numeric stat.
 
-This extension works with tokens on the **Prop**, **Mount**, and **Character** layers.
+<img name="Inline Math Demo" src="<ADD_YOUR_IMAGE_LINK_HERE>" width="600" />
 
-The health bar is **created automatically** if a number greater than 0 is in the max health field. The temporary HP and armor class bubbles work the same way.
+In a hurry? Press **Tab** to cycle through inputs.
 
-### Game / Dungeon Masters
+This extension works with tokens on the **Character** and **Mount** layers.
 
-The GM gets access to more configuration options.
+**Bars & bubbles appear automatically** when their values are greater than 0:
+- The HP bar is created when **Max HP > 0**
+- Temp HP / PD / AD bubbles appear when their value is **> 0**
 
-By clicking the button at the bottom of the context menu the GM can lock their players out of viewing tokens' stats.
+### Game Masters
 
-<img name="GM Context Menu" src="https://github.com/user-attachments/assets/fbdc127d-41cc-4023-90fd-575909ad5569" width=300>
+GMs get access to additional configuration options.
+
+By clicking the button at the bottom of the context menu, the GM can lock players out of editing/viewing a token’s stats (depending on settings).
+
+<img name="GM Context Menu" src="<ADD_YOUR_IMAGE_LINK_HERE>" width="300" />
 
 ### Action Menu
 
-The action menu provides access to all of a rooms tokens in one place.
+The action menu provides access to all of a room’s tokens in one place.
 
-Quickly apply AOE effects or modify multiple tokens using the built in operations.
+Quickly apply AOE effects or modify multiple tokens using the built-in operations.
 
-Roll dice either publicly or secretly using the command line. Your rolls are stored in the scene roll log. Check out [RPG Dice Roller](https://dice-roller.github.io/documentation/guide/notation/) for details on the supported dice notations.
+Roll dice either publicly or secretly using the command line. Your rolls are stored in the scene roll log. Check out [RPG Dice Roller](https://dice-roller.github.io/documentation/guide/notation/) for supported dice notation.
 
-![Action Menu](https://github.com/user-attachments/assets/86d39c02-219d-47b6-986d-6f5785e71d07)
+![Action Menu](<ADD_YOUR_IMAGE_LINK_HERE>)
 
 ### Name tags
 
-Name tags can be enabled from the settings menu. Once enabled both players and GMs can set a token's name in the context menu embed. The autofill icon sets the name tag to the token's name property found under the accessibility settings. The name that you give the token will also be displayed in initiative tracking extensions.
+Name tags can be enabled from the settings menu. Once enabled, both players and GMs can set a token’s name in the context menu.
 
-<img name="Name tag context menu" src="https://github.com/user-attachments/assets/9f349b52-4918-464c-99ff-7db63550e31d" width=300>
+The autofill icon sets the name tag to the token’s **name property** (from accessibility settings). The name you give the token will also be displayed in initiative tracking extensions.
+
+<img name="Name tag context menu" src="<ADD_YOUR_IMAGE_LINK_HERE>" width="300" />
 
 ### Settings
 
-The settings menu allows GMs to customize the extension to better fit their use case. There are room level settings that apply to every scene opened in the current room, and scene level settings which override the room settings and apply no matter what room the scene is being viewed in.
+The settings menu allows GMs to customize the extension.
 
-![Settings Menu](https://github.com/user-attachments/assets/a8758eca-e727-4509-933d-456c57210fc9)
+There are:
+- **Room-level settings** (apply to every scene in the room)
+- **Scene-level settings** (override room settings for that scene)
+
+![Settings Menu](<ADD_YOUR_IMAGE_LINK_HERE>)
 
 ### Uninstalling
 
-Refresh your page after uninstalling the extension to clear health bars and stat bubbles from the scene. Token data will **not** be deleted by uninstalling.
+Refresh your page after uninstalling the extension to clear health bars and stat bubbles from the scene.
 
-## Feature Requests
+Token data will **not** be deleted by uninstalling.
 
-I may accept feature requests but - as I have limited time and development plans of my own - being a paid member on [Patreon](https://www.patreon.com/SeamusFinlayson) is your best path to getting a feature implemented.
+## Support / Issues
 
-## Support
+If you need support, open an issue on **your** GitHub repo:
+`https://github.com/<YOUR_ACCOUNT>/<YOUR_REPO>/issues`
 
-If you need support for this extension you can message me in the [Owlbear Rodeo Discord](https://discord.gg/yWSErB6Qaj) @Seamus or open an issue on [GitHub](https://github.com/SeamusFinlayson/Bubbles-for-Owkbear-Rodeo).
-
-If you like using this extension consider [supporting me on Patreon](https://www.patreon.com/SeamusFinlayson) where paid members can request features. You can also follow along there as a free member for updates.
+(Replace the link above.)
 
 ## Building
 
-This project uses [pnpm](https://pnpm.io/) as a package manager.
+This project uses **yarn**.
 
-To install all the dependencies run:
+Install dependencies:
 
-`pnpm install`
+`yarn`
 
-To run in a development mode run:
+Run in development mode:
 
-`pnpm dev`
+`yarn dev`
 
-To make a production build run:
+Make a production build:
 
-`pnpm build`
+`yarn build`
+
+Preview the production build locally:
+
+`yarn preview`
 
 ## License
 
 GNU GPLv3
 
-## Contributing
+## Contributing / Attribution
 
-Copyright (C) 2023 Owlbear Rodeo
+This project is a fork/adaptation of the original Stat Bubbles extension for Owlbear Rodeo.
 
-Copyright (C) 2023 Seamus Finlayson
+Original author credits:
+- Copyright (C) 2023 Owlbear Rodeo
+- Copyright (C) 2023 Seamus Finlayson
 
-Feel free to fork this but if you post it to the store please do not use my extension name or logo. I am unlikely to accept pull requests.
+If you publish your fork publicly (especially to the store), use your own extension name/logo.
