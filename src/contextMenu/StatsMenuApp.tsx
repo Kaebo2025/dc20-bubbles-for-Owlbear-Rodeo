@@ -139,11 +139,11 @@ export default function StatsMenuApp({
   const StatsMenu: JSX.Element = (
     <div
       className={
-        "grid grid-cols-5 rounded-lg bg-mirage-950/[0.07] fill-text-secondary p-1 py-1 dark:bg-mirage-50/[0.07] dark:fill-text-secondary-dark"
+        "grid grid-cols-5 grid-rows-[1fr_12px] rounded-lg bg-mirage-950/[0.07] fill-text-secondary p-1 py-1 dark:bg-mirage-50/[0.07] dark:fill-text-secondary-dark"
       }
     >
       {/* HP / Max HP */}
-      <div className="col-span-2 grid grid-cols-1 grid-rows-[12px_1fr_12px] justify-items-center gap-y-[1px]">
+      <div className="col-span-2 row-start-1 grid grid-cols-1 grid-rows-[12px_1fr_12px] justify-items-center gap-y-[1px]">
         <h2 className="col-span-2 flex justify-center self-start text-2xs font-medium tracking-wider text-text-secondary dark:text-text-secondary-dark">
           HP
         </h2>
@@ -183,7 +183,7 @@ export default function StatsMenuApp({
       {/* PD */}
       <div className="col-start-4 row-start-1 flex items-center justify-center">
         <div className="size-0">
-          <TextRing topText={"PD"} bottomText={"Defense"} letterSpacing={2} />
+          <TextRing topText={"PD"} bottomText={""} letterSpacing={1.2} />
         </div>
       </div>
       <div className="col-start-4 row-start-1 flex size-full items-center justify-center">
@@ -199,7 +199,7 @@ export default function StatsMenuApp({
       {/* AD */}
       <div className="col-start-5 row-start-1 flex items-center justify-center">
         <div className="size-0">
-          <TextRing topText={"AD"} bottomText={"Defense"} letterSpacing={2} />
+          <TextRing topText={"AD"} bottomText={""} letterSpacing={1.2} />
         </div>
       </div>
       <div className="col-start-5 row-start-1 flex size-full items-center justify-center">
@@ -210,6 +210,13 @@ export default function StatsMenuApp({
           name="ad"
           animateOnlyWhenRootActive={true}
         />
+      </div>
+
+      {/* Shared DEFENSE label under PD + AD */}
+      <div className="col-start-4 col-span-2 row-start-2 flex items-center justify-center">
+        <div className="text-2xs font-medium tracking-wider text-text-secondary dark:text-text-secondary-dark">
+          DEFENSE
+        </div>
       </div>
     </div>
   );
