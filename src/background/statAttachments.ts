@@ -1,4 +1,5 @@
 import OBR, { Image, Item, isImage } from "@owlbear-rodeo/sdk";
+import { migrateBubbleStatsToSuite } from "@/migrations/migrateBubbleStats";
 import { getPluginId } from "../getPluginId";
 import {
   DIAMETER,
@@ -58,6 +59,10 @@ export default async function startBackground() {
     settings = (await getGlobalSettings(settings)).settings;
     themeMode = (await OBR.theme.getTheme()).mode;
     createContextMenuItems(settings, themeMode);
+
+    // Migration: ensure older stat keys map into suite fields if needed
+    await migrateBubbleStatsToSuite();
+
     await refreshAllHealthBars();
     await startCallbacks();
   };
@@ -73,16 +78,13 @@ export default async function startBackground() {
 }
 
 async function refreshAllHealthBars() {
-  //get shapes from scene
   const items: Image[] = await OBR.scene.items.getItems(
     (item) =>
       (item.layer === "CHARACTER" || item.layer === "MOUNT") && isImage(item),
   );
 
-  //store array of all items currently on the board for change monitoring
   itemsLast = items;
 
-  //draw health bars
   const roll = await OBR.player.getRole();
   const sceneDpi = await OBR.scene.grid.getDpi();
   for (const item of items) {
@@ -91,7 +93,6 @@ async function refreshAllHealthBars() {
 
   await sendItemsToScene(addItemsArray, deleteItemsArray);
 
-  //update global item id list for orphaned health bar monitoring
   const itemIds: string[] = [];
   for (const item of items) {
     itemIds.push(item.id);
@@ -100,19 +101,15 @@ async function refreshAllHealthBars() {
 
 async function startCallbacks() {
   if (!callbacksStarted) {
-    // Don't run this again unless the listeners have been unsubscribed
     callbacksStarted = true;
 
-    // Handle theme changes
     const unSubscribeFromTheme = OBR.theme.onChange((theme) => {
       themeMode = theme.mode;
       createContextMenuItems(settings, themeMode);
     });
 
-    // Handle role changes
     userRoleLast = await OBR.player.getRole();
     const unSubscribeFromPlayer = OBR.player.onChange(async () => {
-      // Do a refresh if player role change is detected
       const userRole = await OBR.player.getRole();
       if (userRole !== userRoleLast) {
         refreshAllHealthBars();
@@ -120,7 +117,6 @@ async function startCallbacks() {
       }
     });
 
-    // Handle metadata changes
     const unsubscribeFromSceneMetadata = OBR.scene.onMetadataChange(
       async (metadata) => {
         const { settings: newSettings, isChanged: doRefresh } =
@@ -144,10 +140,8 @@ async function startCallbacks() {
       },
     );
 
-    // Handle item changes (Update bars/bubbles)
     const unsubscribeFromItems = OBR.scene.items.onChange(
       async (itemsFromCallback) => {
-        // Filter items for only images from character and mount layers
         const imagesFromCallback: Image[] = [];
         for (const item of itemsFromCallback) {
           if (
@@ -158,13 +152,9 @@ async function startCallbacks() {
           }
         }
 
-        //create list of modified and new items, skipping deleted items
         const changedItems: Image[] = getChangedItems(imagesFromCallback);
-
-        //update array of all items currently on the board
         itemsLast = imagesFromCallback;
 
-        //draw bars/bubbles
         const role = await OBR.player.getRole();
         const sceneDpi = await OBR.scene.grid.getDpi();
         for (const item of changedItems) {
@@ -175,7 +165,6 @@ async function startCallbacks() {
       },
     );
 
-    // Unsubscribe listeners that rely on the scene if it stops being ready
     const unsubscribeFromScene = OBR.scene.onReadyChange((isReady) => {
       if (!isReady) {
         unSubscribeFromTheme();
@@ -193,16 +182,14 @@ async function startCallbacks() {
 function getChangedItems(imagesFromCallback: Image[]) {
   const changedItems: Image[] = [];
 
-  let s = 0; // # items skipped in itemsLast array, caused by deleted items
+  let s = 0;
   for (let i = 0; i < imagesFromCallback.length; i++) {
     if (i > itemsLast.length - s - 1) {
-      //check for new items at the end of the list
       changedItems.push(imagesFromCallback[i]);
     } else if (itemsLast[i + s].id !== imagesFromCallback[i].id) {
-      s++; // Skip an index in itemsLast
-      i--; // Reuse the index item in imagesFromCallback
+      s++;
+      i--;
     } else if (
-      //check for scaling changes
       !(
         itemsLast[i + s].scale.x === imagesFromCallback[i].scale.x &&
         itemsLast[i + s].scale.y === imagesFromCallback[i].scale.y &&
@@ -210,11 +197,9 @@ function getChangedItems(imagesFromCallback: Image[]) {
           !settings.nameTags)
       )
     ) {
-      // Attachments must be deleted to prevent ghost selection highlight bug
       deleteItemsArray.push(hpTextId(imagesFromCallback[i].id));
       changedItems.push(imagesFromCallback[i]);
     } else if (
-      //check position, visibility, and metadata changes
       !(
         itemsLast[i + s].position.x === imagesFromCallback[i].position.x &&
         itemsLast[i + s].position.y === imagesFromCallback[i].position.y &&
@@ -236,7 +221,6 @@ function getChangedItems(imagesFromCallback: Image[]) {
           )
       )
     ) {
-      //update items
       changedItems.push(imagesFromCallback[i]);
     }
   }
@@ -246,33 +230,25 @@ function getChangedItems(imagesFromCallback: Image[]) {
 function createAttachments(item: Image, role: "PLAYER" | "GM", dpi: number) {
   const { origin, bounds } = getOriginAndBounds(settings, item, dpi);
 
-  // Create stats
   const [hp, maxHp, tempHp, pd, ad, statsVisible] = getTokenStats(item);
 
   if (role === "PLAYER" && !statsVisible && !settings.showBars) {
-    // Display nothing, explicitly remove all attachments
     addHealthAttachmentsToArray(deleteItemsArray, item.id);
     addArmorAttachmentsToArray(deleteItemsArray, item.id); // reused for PD
     addTempHealthAttachmentsToArray(deleteItemsArray, item.id);
     addAdAttachmentsToArray(deleteItemsArray, item.id);
   } else if (role === "PLAYER" && !statsVisible && settings.showBars) {
-    // Display limited stats depending on GM configuration
     createLimitedHealthBar();
   } else {
-    // Display full stats
     const hasHealthBar = createFullHealthBar();
-    const hasPdBubble = createPD(hasHealthBar);
-    const hasAdBubble = createAD(hasHealthBar, hasPdBubble);
-    createTempHp(hasHealthBar, hasPdBubble, hasAdBubble);
+    const hasAdBubble = createAD(hasHealthBar);
+    const hasPdBubble = createPD(hasHealthBar, hasAdBubble);
+    createTempHp(hasHealthBar);
   }
 
-  // Create name tag
   const plainText = getName(item);
   if (settings.nameTags && plainText !== "") {
-    const nameTagPosition = {
-      x: origin.x,
-      y: origin.y,
-    };
+    const nameTagPosition = { x: origin.x, y: origin.y };
     if (settings.barAtTop) {
       if (maxHp <= 0 || (role === "PLAYER" && !statsVisible && !settings.showBars)) {
         nameTagPosition.y = origin.y - 4;
@@ -296,13 +272,11 @@ function createAttachments(item: Image, role: "PLAYER" | "GM", dpi: number) {
   }
 
   function createLimitedHealthBar() {
-    // Clear other attachments
     deleteItemsArray.push(hpTextId(item.id));
     addArmorAttachmentsToArray(deleteItemsArray, item.id); // reused for PD
     addTempHealthAttachmentsToArray(deleteItemsArray, item.id);
     addAdAttachmentsToArray(deleteItemsArray, item.id);
 
-    // return early if health bar shouldn't be created
     if (maxHp <= 0) {
       addHealthAttachmentsToArray(deleteItemsArray, item.id);
       return;
@@ -323,12 +297,7 @@ function createAttachments(item: Image, role: "PLAYER" | "GM", dpi: number) {
     );
   }
 
-  /**
-   * Create a health bar.
-   * @returns True if a health bar was created.
-   */
   function createFullHealthBar() {
-    // return early if health bar shouldn't be created
     if (maxHp <= 0) {
       addHealthAttachmentsToArray(deleteItemsArray, item.id);
       return false;
@@ -340,18 +309,17 @@ function createAttachments(item: Image, role: "PLAYER" | "GM", dpi: number) {
     return true;
   }
 
-  /**
-   * Create the PD bubble (reuses old AC attachment IDs and deletion helpers).
-   * @returns True if PD bubble was created.
-   */
-  function createPD(hasHealthBar: boolean) {
+  // PD: right side, just left of AD (if AD exists)
+  function createPD(hasHealthBar: boolean, hasAdBubble: boolean) {
     if (pd <= 0) {
       addArmorAttachmentsToArray(deleteItemsArray, item.id);
       return false;
     }
 
+    const rightEdgeX = origin.x + bounds.width / 2 - DIAMETER / 2 - 2;
+
     const pdPosition = {
-      x: origin.x + bounds.width / 2 - DIAMETER / 2 - 2,
+      x: rightEdgeX - (hasAdBubble ? DIAMETER + 4 : 0),
       y: origin.y - DIAMETER / 2 - 4 - (hasHealthBar ? FULL_BAR_HEIGHT : 0),
     };
     if (settings.barAtTop) {
@@ -364,7 +332,7 @@ function createAttachments(item: Image, role: "PLAYER" | "GM", dpi: number) {
         pd,
         "cornflowerblue",
         pdPosition,
-        acBackgroundId(item.id), // reuse old AC ids
+        acBackgroundId(item.id), // reuse AC ids
         acTextId(item.id),
       ),
     );
@@ -372,22 +340,17 @@ function createAttachments(item: Image, role: "PLAYER" | "GM", dpi: number) {
     return true;
   }
 
-  /**
-   * Create the AD bubble.
-   * @returns True if AD bubble was created.
-   */
-  function createAD(hasHealthBar: boolean, hasPdBubble: boolean) {
+  // AD: far right
+  function createAD(hasHealthBar: boolean) {
     if (ad <= 0) {
       addAdAttachmentsToArray(deleteItemsArray, item.id);
       return false;
     }
 
+    const rightEdgeX = origin.x + bounds.width / 2 - DIAMETER / 2 - 2;
+
     const adPosition = {
-      x:
-        origin.x +
-        bounds.width / 2 -
-        DIAMETER * (hasPdBubble ? 2.5 : 1.5) -
-        6,
+      x: rightEdgeX,
       y: origin.y - DIAMETER / 2 - 4 - (hasHealthBar ? FULL_BAR_HEIGHT : 0),
     };
     if (settings.barAtTop) {
@@ -408,36 +371,19 @@ function createAttachments(item: Image, role: "PLAYER" | "GM", dpi: number) {
     return true;
   }
 
-  /**
-   * Create the temp HP bubble.
-   */
-  function createTempHp(
-    hasHealthBar: boolean,
-    hasPdBubble: boolean,
-    hasAdBubble: boolean,
-  ) {
+  // Temp HP: far left
+  function createTempHp(hasHealthBar: boolean) {
     if (tempHp <= 0) {
       addTempHealthAttachmentsToArray(deleteItemsArray, item.id);
       return;
     }
 
+    const leftEdgeX = origin.x - bounds.width / 2 + DIAMETER / 2 + 2;
+
     const tempHpPosition = {
-      x:
-        origin.x +
-        bounds.width / 2 -
-        DIAMETER * (hasPdBubble ? 1.5 : 0.5) -
-        4,
+      x: leftEdgeX,
       y: origin.y - DIAMETER / 2 - 4 - (hasHealthBar ? FULL_BAR_HEIGHT : 0),
     };
-
-    // If AD exists, shift Temp HP left so bubbles don't overlap.
-    if (hasAdBubble) {
-      tempHpPosition.x =
-        origin.x +
-        bounds.width / 2 -
-        DIAMETER * (hasPdBubble ? 3.5 : 2.5) -
-        8;
-    }
 
     if (settings.barAtTop) {
       tempHpPosition.y = origin.y + DIAMETER / 2;
@@ -456,10 +402,7 @@ function createAttachments(item: Image, role: "PLAYER" | "GM", dpi: number) {
   }
 }
 
-async function sendItemsToScene(
-  addItemsArray: Item[],
-  deleteItemsArray: string[],
-) {
+async function sendItemsToScene(addItemsArray: Item[], deleteItemsArray: string[]) {
   await OBR.scene.local.deleteItems(deleteItemsArray);
   await OBR.scene.local.addItems(addItemsArray);
   deleteItemsArray.length = 0;
