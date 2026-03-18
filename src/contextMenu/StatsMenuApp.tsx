@@ -60,7 +60,7 @@ export default function StatsMenuApp({
     const name = target.name;
     if (!isInputName(name)) throw "Error: invalid input name.";
 
-    // ✅ Special case: Temp HP should spill into HP when subtracting too much
+    // ✅ Special case: Temp HP spills into HP when subtracting too much
     if (name === "tempHp") {
       const { newTempHp, newHp } = computeTempHpOverflow(
         target.value,
@@ -74,6 +74,7 @@ export default function StatsMenuApp({
     }
 
     const value = getNewStatValue(name, target.value, previousValue);
+
     setToken((prev) => ({ ...prev, [name]: value }) as Token);
     writeTokenValueToItem(token.item.id, name, value);
   }
@@ -88,6 +89,7 @@ export default function StatsMenuApp({
   }
 
   const [tokenName, setTokenName] = useState(initialTokenName);
+
   const [nameTagsEnabled, setNameTagsEnabled] = useState(initialNameTagsEnabled);
 
   useEffect(() =>
@@ -154,7 +156,9 @@ export default function StatsMenuApp({
           parentMax={token.maxHp}
           color={"RED"}
           valueUpdateHandler={async (target) => handleStatUpdate(target, token.hp)}
-          maxUpdateHandler={async (target) => handleStatUpdate(target, token.maxHp)}
+          maxUpdateHandler={async (target) =>
+            handleStatUpdate(target, token.maxHp)
+          }
           valueName="hp"
           maxName="maxHp"
           animateOnlyWhenRootActive={true}
