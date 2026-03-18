@@ -40,7 +40,7 @@ let themeMode: "DARK" | "LIGHT";
 
 /**
  * AD attachment ids (local to this file).
- * PD reuses old AC ids so we don't need to touch compoundItemHelpers.
+ * PD continues to reuse old AC ids (so we don't have to touch compoundItemHelpers).
  */
 function adBackgroundId(itemId: string) {
   return `${itemId}-ad-background`;
@@ -55,7 +55,7 @@ function addAdAttachmentsToArray(arr: string[], itemId: string) {
 
 /**
  * Safe lightweight migration:
- * Copies legacy D&D keys into DC20 keys if DC20 keys are missing.
+ * copies legacy D&D keys into DC20 keys if DC20 keys are missing.
  */
 async function migrateLegacyStatsIfNeeded() {
   const items: Image[] = await OBR.scene.items.getItems(
@@ -76,12 +76,10 @@ async function migrateLegacyStatsIfNeeded() {
 
       let changed = false;
 
-      // health -> hp
       if (meta["hp"] === undefined && typeof meta["health"] === "number") {
         meta["hp"] = meta["health"];
         changed = true;
       }
-      // max health -> max hp
       if (
         meta["max hp"] === undefined &&
         typeof meta["max health"] === "number"
@@ -89,7 +87,6 @@ async function migrateLegacyStatsIfNeeded() {
         meta["max hp"] = meta["max health"];
         changed = true;
       }
-      // temporary health -> temp hp
       if (
         meta["temp hp"] === undefined &&
         typeof meta["temporary health"] === "number"
@@ -97,7 +94,6 @@ async function migrateLegacyStatsIfNeeded() {
         meta["temp hp"] = meta["temporary health"];
         changed = true;
       }
-      // armor class -> pd
       if (meta["pd"] === undefined && typeof meta["armor class"] === "number") {
         meta["pd"] = meta["armor class"];
         changed = true;
@@ -110,13 +106,11 @@ async function migrateLegacyStatsIfNeeded() {
 
 export default async function startBackground() {
   const start = async () => {
-    // Run migration once when scene becomes ready (won't break builds)
     await migrateLegacyStatsIfNeeded();
 
     settings = (await getGlobalSettings(settings)).settings;
     themeMode = (await OBR.theme.getTheme()).mode;
     createContextMenuItems(settings, themeMode);
-
     await refreshAllHealthBars();
     await startCallbacks();
   };
@@ -178,6 +172,7 @@ async function startCallbacks() {
         }
       },
     );
+
     const unsubscribeFromRoomMetadata = OBR.room.onMetadataChange(
       async (metadata) => {
         const { settings: newSettings, isChanged: doRefresh } =
@@ -263,12 +258,8 @@ function getChangedItems(imagesFromCallback: Image[]) {
           JSON.stringify(
             imagesFromCallback[i].metadata[getPluginId("metadata")],
           ) &&
-        JSON.stringify(
-          itemsLast[i + s].metadata[getPluginId(NAME_METADATA_ID)],
-        ) ===
-          JSON.stringify(
-            imagesFromCallback[i].metadata[getPluginId(NAME_METADATA_ID)],
-          )
+        JSON.stringify(itemsLast[i + s].metadata[getPluginId(NAME_METADATA_ID)]) ===
+          JSON.stringify(imagesFromCallback[i].metadata[getPluginId(NAME_METADATA_ID)])
       )
     ) {
       changedItems.push(imagesFromCallback[i]);
@@ -280,20 +271,21 @@ function getChangedItems(imagesFromCallback: Image[]) {
 function createAttachments(item: Image, role: "PLAYER" | "GM", dpi: number) {
   const { origin, bounds } = getOriginAndBounds(settings, item, dpi);
 
+  // DC20 stats
   const [hp, maxHp, tempHp, pd, ad, statsVisible] = getTokenStats(item);
 
   if (role === "PLAYER" && !statsVisible && !settings.showBars) {
     addHealthAttachmentsToArray(deleteItemsArray, item.id);
-    addArmorAttachmentsToArray(deleteItemsArray, item.id); // PD uses these ids
-    addTempHealthAttachmentsToArray(deleteItemsArray, item.id);
-    addAdAttachmentsToArray(deleteItemsArray, item.id);
+    addArmorAttachmentsToArray(deleteItemsArray, item.id); // PD (reuses AC ids)
+    addTempHealthAttachmentsToArray(deleteItemsArray, item.id); // TempHP
+    addAdAttachmentsToArray(deleteItemsArray, item.id); // AD
   } else if (role === "PLAYER" && !statsVisible && settings.showBars) {
     createLimitedHealthBar();
   } else {
     const hasHealthBar = createFullHealthBar();
 
-    // ✅ Layout:
-    // Temp HP far LEFT, PD then AD far RIGHT (AD is right-most)
+    // ✅ Layout you want:
+    // Temp HP FAR LEFT, PD then AD FAR RIGHT (AD is right-most)
     const hasAdBubble = createAD(hasHealthBar);
     createPD(hasHealthBar, hasAdBubble);
     createTempHp(hasHealthBar);
@@ -303,10 +295,7 @@ function createAttachments(item: Image, role: "PLAYER" | "GM", dpi: number) {
   if (settings.nameTags && plainText !== "") {
     const nameTagPosition = { x: origin.x, y: origin.y };
     if (settings.barAtTop) {
-      if (
-        maxHp <= 0 ||
-        (role === "PLAYER" && !statsVisible && !settings.showBars)
-      ) {
+      if (maxHp <= 0 || (role === "PLAYER" && !statsVisible && !settings.showBars)) {
         nameTagPosition.y = origin.y - 4;
       } else if (role === "PLAYER" && !statsVisible && settings.showBars) {
         nameTagPosition.y = origin.y - SHORT_BAR_HEIGHT - 4;
@@ -378,9 +367,7 @@ function createAttachments(item: Image, role: "PLAYER" | "GM", dpi: number) {
       x: rightEdgeX,
       y: origin.y - DIAMETER / 2 - 4 - (hasHealthBar ? FULL_BAR_HEIGHT : 0),
     };
-    if (settings.barAtTop) {
-      adPosition.y = origin.y + DIAMETER / 2;
-    }
+    if (settings.barAtTop) adPosition.y = origin.y + DIAMETER / 2;
 
     addItemsArray.push(
       ...createStatBubble(
@@ -396,7 +383,7 @@ function createAttachments(item: Image, role: "PLAYER" | "GM", dpi: number) {
     return true;
   }
 
-  // PD: right side, left of AD (if AD exists)
+  // PD: right side, just left of AD (if AD exists)
   function createPD(hasHealthBar: boolean, hasAdBubble: boolean) {
     if (pd <= 0) {
       addArmorAttachmentsToArray(deleteItemsArray, item.id);
@@ -409,9 +396,7 @@ function createAttachments(item: Image, role: "PLAYER" | "GM", dpi: number) {
       x: rightEdgeX - (hasAdBubble ? DIAMETER + 4 : 0),
       y: origin.y - DIAMETER / 2 - 4 - (hasHealthBar ? FULL_BAR_HEIGHT : 0),
     };
-    if (settings.barAtTop) {
-      pdPosition.y = origin.y + DIAMETER / 2;
-    }
+    if (settings.barAtTop) pdPosition.y = origin.y + DIAMETER / 2;
 
     addItemsArray.push(
       ...createStatBubble(
@@ -419,7 +404,7 @@ function createAttachments(item: Image, role: "PLAYER" | "GM", dpi: number) {
         pd,
         "cornflowerblue",
         pdPosition,
-        acBackgroundId(item.id),
+        acBackgroundId(item.id), // reuse AC ids
         acTextId(item.id),
       ),
     );
@@ -440,10 +425,7 @@ function createAttachments(item: Image, role: "PLAYER" | "GM", dpi: number) {
       x: leftEdgeX,
       y: origin.y - DIAMETER / 2 - 4 - (hasHealthBar ? FULL_BAR_HEIGHT : 0),
     };
-
-    if (settings.barAtTop) {
-      tempHpPosition.y = origin.y + DIAMETER / 2;
-    }
+    if (settings.barAtTop) tempHpPosition.y = origin.y + DIAMETER / 2;
 
     addItemsArray.push(
       ...createStatBubble(
