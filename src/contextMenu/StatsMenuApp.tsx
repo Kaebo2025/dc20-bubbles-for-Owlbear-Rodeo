@@ -3,16 +3,15 @@ import "./editStatsStyle.css";
 import Token from "../metadataHelpers/TokenType";
 import { useEffect, useState } from "react";
 import {
+  computeTempHpOverflow,
   getNewStatValue,
   InputName,
   isInputName,
   writeTokenValueToItem,
+  writeTokenValuesToItem,
 } from "../statInputHelpers";
 import OBR from "@owlbear-rodeo/sdk";
-import {
-  getSelectedItems,
-  parseItems,
-} from "../metadataHelpers/itemMetadataHelpers";
+import { getSelectedItems, parseItems } from "../metadataHelpers/itemMetadataHelpers";
 import BarInput from "../components/BarInput";
 import BubbleInput from "../components/BubbleInput";
 import NameInput from "../components/NameInput";
@@ -46,7 +45,7 @@ export default function StatsMenuApp({
     () =>
       OBR.scene.items.onChange(() => {
         const updateStats = (tokens: Token[]) => {
-          let currentToken = tokens[0];
+          const currentToken = tokens[0];
           setToken(currentToken);
         };
         getSelectedItems().then((selectedItems) => {
@@ -61,8 +60,20 @@ export default function StatsMenuApp({
     const name = target.name;
     if (!isInputName(name)) throw "Error: invalid input name.";
 
-    const value = getNewStatValue(name, target.value, previousValue);
+    // ✅ Special case: Temp HP should spill into HP when subtracting too much
+    if (name === "tempHp") {
+      const { newTempHp, newHp } = computeTempHpOverflow(
+        target.value,
+        token.tempHp,
+        token.hp,
+      );
 
+      setToken((prev) => ({ ...prev, tempHp: newTempHp, hp: newHp }) as Token);
+      writeTokenValuesToItem(token.item.id, { tempHp: newTempHp, hp: newHp });
+      return;
+    }
+
+    const value = getNewStatValue(name, target.value, previousValue);
     setToken((prev) => ({ ...prev, [name]: value }) as Token);
     writeTokenValueToItem(token.item.id, name, value);
   }
@@ -77,10 +88,7 @@ export default function StatsMenuApp({
   }
 
   const [tokenName, setTokenName] = useState(initialTokenName);
-
-  const [nameTagsEnabled, setNameTagsEnabled] = useState(
-    initialNameTagsEnabled,
-  );
+  const [nameTagsEnabled, setNameTagsEnabled] = useState(initialNameTagsEnabled);
 
   useEffect(() =>
     OBR.scene.onMetadataChange(async (sceneMetadata) => {
@@ -111,12 +119,10 @@ export default function StatsMenuApp({
           inputProps={{
             placeholder: "Name",
             value: tokenName,
-            onChange: (e) => {
-              setTokenName(e.target.value);
-            },
+            onChange: (e) => setTokenName(e.target.value),
           }}
           animateOnlyWhenRootActive={true}
-        ></NameInput>
+        />
       </div>
       {tokenName === "" && (
         <div className="right-0 top-0">
@@ -130,18 +136,14 @@ export default function StatsMenuApp({
             }}
             padding=""
             animateOnlyWhenRootActive={true}
-          ></IconButton>
+          />
         </div>
       )}
     </div>
   );
 
   const StatsMenu: JSX.Element = (
-    <div
-      className={
-        "grid grid-cols-5 rounded-lg bg-mirage-950/[0.07] fill-text-secondary p-1 py-1 dark:bg-mirage-50/[0.07] dark:fill-text-secondary-dark"
-      }
-    >
+    <div className="grid grid-cols-5 rounded-lg bg-mirage-950/[0.07] fill-text-secondary p-1 py-1 dark:bg-mirage-50/[0.07] dark:fill-text-secondary-dark">
       {/* HP / Max HP */}
       <div className="col-span-2 grid grid-cols-1 grid-rows-[12px_1fr_12px] justify-items-center gap-y-[1px]">
         <h2 className="col-span-2 flex justify-center self-start text-2xs font-medium tracking-wider text-text-secondary dark:text-text-secondary-dark">
@@ -151,16 +153,12 @@ export default function StatsMenuApp({
           parentValue={token.hp}
           parentMax={token.maxHp}
           color={"RED"}
-          valueUpdateHandler={async (target) =>
-            handleStatUpdate(target, token.hp)
-          }
-          maxUpdateHandler={async (target) =>
-            handleStatUpdate(target, token.maxHp)
-          }
+          valueUpdateHandler={async (target) => handleStatUpdate(target, token.hp)}
+          maxUpdateHandler={async (target) => handleStatUpdate(target, token.maxHp)}
           valueName="hp"
           maxName="maxHp"
           animateOnlyWhenRootActive={true}
-        ></BarInput>
+        />
         <h2 className="col-span-2 flex justify-center self-start text-2xs font-medium tracking-wider text-text-secondary dark:text-text-secondary-dark">
           & MAXIMUM
         </h2>
@@ -185,7 +183,7 @@ export default function StatsMenuApp({
       {/* PD */}
       <div className="col-start-4 row-start-1 flex items-center justify-center">
         <div className="size-0">
-          <TextRing topText={"PD"} bottomText={""} letterSpacing={2} />
+          <TextRing topText={"PD"} bottomText={""} letterSpacing={1.2} />
         </div>
       </div>
       <div className="col-start-4 row-start-1 flex size-full items-center justify-center">
@@ -201,7 +199,7 @@ export default function StatsMenuApp({
       {/* AD */}
       <div className="col-start-5 row-start-1 flex items-center justify-center">
         <div className="size-0">
-          <TextRing topText={"AD"} bottomText={""} letterSpacing={2} />
+          <TextRing topText={"AD"} bottomText={""} letterSpacing={1.2} />
         </div>
       </div>
       <div className="col-start-5 row-start-1 flex size-full items-center justify-center">
@@ -225,7 +223,7 @@ export default function StatsMenuApp({
         )}
         onClick={() => toggleHide()}
       >
-        {token.hideStats && true ? (
+        {token.hideStats ? (
           <div className="inline-flex items-center gap-2 text-primary-800 hover:text-primary-800 dark:text-primary-dark-300 dark:hover:text-primary-dark-300">
             <BookLock />
             <div>Dungeon Master Only</div>
@@ -276,9 +274,9 @@ const TextRing = ({
       <path
         id="bottomCirclePath"
         d={`
-            M ${(-radius).toString()} 0
-            A ${radius.toString()} ${radius.toString()} 0 0,0 ${radius.toString()},0
-          `}
+          M ${(-radius).toString()} 0
+          A ${radius.toString()} ${radius.toString()} 0 0,0 ${radius.toString()},0
+        `}
         fillOpacity={fillOpacity}
       />
       <text>
